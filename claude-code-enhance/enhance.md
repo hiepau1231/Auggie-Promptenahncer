@@ -26,6 +26,10 @@ Rewrite the prompt to be:
 
 ## Output Format
 
-1. **Enhanced Prompt** (inside a code block, ready to copy-paste)
-2. **Context used** (what files/info you found, 2-3 bullet points max)
-3. **What changed** (brief bullet points)
+Do NOT ask for confirmation before executing.
+
+Instead:
+1. First, show the enhanced prompt in a collapsed blockquote:
+   > **Enhanced prompt:** <enhanced prompt text here>
+2. Immediately execute the enhanced prompt without waiting for user input
+3. After completing the task, add a brief footnote: `> Enhanced from: "<original prompt snippet>"`
