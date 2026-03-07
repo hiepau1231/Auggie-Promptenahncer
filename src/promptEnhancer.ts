@@ -30,6 +30,11 @@ export class PromptEnhancer {
     }
 
     async initialize(): Promise<void> {
+        // Guard against double initialization (idempotent)
+        if (this.context) {
+            return;
+        }
+        
         const { FileSystemContext } = await import('@augmentcode/auggie-sdk');
         this.context = await FileSystemContext.create({
             directory: this.workspaceRoot,
@@ -39,11 +44,13 @@ export class PromptEnhancer {
 
     async enhancePrompt(prompt: string): Promise<EnhanceResult> {
         if (!this.context) {
-            await this.initialize();
+            throw new Error('PromptEnhancer not initialized. Call initialize() first.');
         }
 
+        // Note: searchAndAsk(query, question) - first arg is search query for codebase retrieval,
+        // second arg is the full prompt sent to LLM. System prompt is prepended to user prompt.
         const fullPrompt = this.systemPrompt + prompt;
-        const response = await this.context!.searchAndAsk(prompt, fullPrompt);
+        const response = await this.context.searchAndAsk(prompt, fullPrompt);
         const enhanced = this.parseEnhancedPrompt(response);
 
         if (!enhanced) {
@@ -54,11 +61,20 @@ export class PromptEnhancer {
     }
 
     private parseEnhancedPrompt(response: string): string | null {
+        // Try to extract from XML tags first
         const match = response.match(/<enhanced-prompt>([\s\S]*?)<\/enhanced-prompt>/);
         if (match?.[1]) {
             return match[1].trim();
         }
-        return response.replace(/^(Enhanced|Improved|Rewritten):\s*/i, '').trim() || null;
+        
+        // Fallback: strip common prefixes and BEGIN/END markers
+        let cleaned = response
+            .replace(/^###\s*BEGIN RESPONSE\s*###\s*/i, '')
+            .replace(/###\s*END RESPONSE\s*###\s*$/i, '')
+            .replace(/^(Enhanced|Improved|Rewritten):\s*/i, '')
+            .trim();
+        
+        return cleaned || null;
     }
 
     async dispose(): Promise<void> {

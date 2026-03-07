@@ -11,8 +11,8 @@ export interface PromptTemplate {
 
 let enhancer: PromptEnhancer | null = null;
 let statusBar: StatusBarManager | null = null;
-let isInitialized = false;
-let globalContext: vscode.ExtensionContext;
+let initializationPromise: Promise<void> | null = null;
+let globalContext: vscode.ExtensionContext | undefined;
 
 const STORAGE_KEY = 'promptEnhancer.templates';
 const ACTIVE_KEY = 'promptEnhancer.activeTemplate';
@@ -32,21 +32,41 @@ function getDefaultTemplates(): PromptTemplate[] {
 }
 
 export function getTemplates(): PromptTemplate[] {
+    if (!globalContext) {
+        return getDefaultTemplates();
+    }
     const stored = globalContext.globalState.get<PromptTemplate[]>(STORAGE_KEY);
     return stored && stored.length > 0 ? stored : getDefaultTemplates();
 }
 
-export function saveTemplates(templates: PromptTemplate[]) {
-    globalContext.globalState.update(STORAGE_KEY, templates);
+export async function saveTemplates(templates: PromptTemplate[]): Promise<void> {
+    if (!globalContext) {
+        throw new Error('Extension not activated');
+    }
+    await globalContext.globalState.update(STORAGE_KEY, templates);
 }
 
 export function getActiveTemplateId(): string {
+    if (!globalContext) {
+        return 'default';
+    }
     return globalContext.globalState.get<string>(ACTIVE_KEY) || 'default';
 }
 
-export function setActiveTemplateId(id: string) {
-    globalContext.globalState.update(ACTIVE_KEY, id);
+export async function setActiveTemplateId(id: string): Promise<void> {
+    if (!globalContext) {
+        throw new Error('Extension not activated');
+    }
+    
+    // Validate that the template ID exists
     const templates = getTemplates();
+    const templateExists = templates.some(t => t.id === id);
+    if (!templateExists) {
+        log(`Warning: Template ID '${id}' not found, falling back to default`);
+        id = templates[0]?.id || 'default';
+    }
+    
+    await globalContext.globalState.update(ACTIVE_KEY, id);
     const active = templates.find(t => t.id === id);
     if (active && enhancer) {
         enhancer.setSystemPrompt(active.prompt);
@@ -78,16 +98,23 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     async function handleEnhance(inputText: string): Promise<string> {
-        log(`Enhancing: "${inputText.substring(0, 50)}..."`);
+        // Log metadata only, not sensitive content
+        log(`Enhancing prompt (${inputText.length} chars)`);
         statusBar?.setEnhancing();
 
         try {
-            if (!isInitialized) {
+            // Promise-based initialization lock to prevent race conditions
+            if (!initializationPromise) {
                 log('Indexing codebase (first use)...');
-                await enhancer!.initialize();
-                isInitialized = true;
-                log('Indexing complete');
+                initializationPromise = enhancer!.initialize()
+                    .catch((error) => {
+                        // Reset promise on failure to allow retry
+                        initializationPromise = null;
+                        throw error;
+                    });
             }
+            await initializationPromise;
+            log('Indexing complete');
 
             const result = await enhancer!.enhancePrompt(inputText);
             log(`Enhanced (${result.enhanced.length} chars)`);
@@ -110,6 +137,16 @@ export async function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
     log('Extension deactivating...');
     InputPanel.dispose();
+    
+    // Wait for initialization to complete before disposing
+    if (initializationPromise) {
+        try {
+            await initializationPromise;
+        } catch (error) {
+            log(`Initialization failed during deactivation: ${error}`);
+        }
+    }
+    
     if (enhancer) {
         await enhancer.dispose();
     }

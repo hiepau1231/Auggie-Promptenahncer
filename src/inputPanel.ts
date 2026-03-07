@@ -28,39 +28,75 @@ export class InputPanel {
         this.sendTemplates();
 
         this.panel.webview.onDidReceiveMessage(async (msg) => {
-            if (msg.type === 'enhance' && this.handler) {
-                try {
-                    this.panel?.webview.postMessage({ type: 'status', status: 'enhancing' });
-                    const enhanced = await this.handler(msg.text);
-                    this.panel?.webview.postMessage({ type: 'result', enhanced });
-                } catch (error) {
-                    this.panel?.webview.postMessage({ type: 'error', error: String(error) });
+            try {
+                if (msg.type === 'enhance' && this.handler) {
+                    // Validate input
+                    if (typeof msg.text !== 'string' || msg.text.trim() === '') {
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Input text is required' });
+                        return;
+                    }
+                    if (msg.text.length > 50000) {
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Input text too long (max 50,000 characters)' });
+                        return;
+                    }
+                    
+                    try {
+                        this.panel?.webview.postMessage({ type: 'status', status: 'enhancing' });
+                        const enhanced = await this.handler(msg.text);
+                        this.panel?.webview.postMessage({ type: 'result', enhanced });
+                    } catch (error) {
+                        this.panel?.webview.postMessage({ type: 'error', error: String(error) });
+                    }
+                } else if (msg.type === 'getTemplates') {
+                    this.sendTemplates();
+                } else if (msg.type === 'saveTemplate') {
+                    // Validate template data
+                    if (!msg.template || typeof msg.template !== 'object') {
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Invalid template data' });
+                        return;
+                    }
+                    if (typeof msg.template.id !== 'string' || typeof msg.template.name !== 'string' || typeof msg.template.prompt !== 'string') {
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Invalid template fields' });
+                        return;
+                    }
+                    if (msg.template.name.length > 100 || msg.template.prompt.length > 10000) {
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Template name or prompt too long' });
+                        return;
+                    }
+                    
+                    const templates = getTemplates();
+                    const existing = templates.findIndex(t => t.id === msg.template.id);
+                    if (existing >= 0) {
+                        templates[existing] = msg.template;
+                    } else {
+                        templates.push(msg.template);
+                    }
+                    await saveTemplates(templates);
+                    this.sendTemplates();
+                } else if (msg.type === 'deleteTemplate') {
+                    if (typeof msg.id !== 'string') {
+                        return;
+                    }
+                    
+                    const templates = getTemplates().filter(t => t.id !== msg.id);
+                    if (templates.length === 0) {
+                        templates.push({ id: 'default', name: 'Default Enhancer', prompt: DEFAULT_SYSTEM_PROMPT });
+                    }
+                    await saveTemplates(templates);
+                    if (getActiveTemplateId() === msg.id) {
+                        await setActiveTemplateId(templates[0].id);
+                    }
+                    this.sendTemplates();
+                } else if (msg.type === 'setActive') {
+                    if (typeof msg.id !== 'string') {
+                        return;
+                    }
+                    await setActiveTemplateId(msg.id);
+                    this.sendTemplates();
                 }
-            } else if (msg.type === 'getTemplates') {
-                this.sendTemplates();
-            } else if (msg.type === 'saveTemplate') {
-                const templates = getTemplates();
-                const existing = templates.findIndex(t => t.id === msg.template.id);
-                if (existing >= 0) {
-                    templates[existing] = msg.template;
-                } else {
-                    templates.push(msg.template);
-                }
-                saveTemplates(templates);
-                this.sendTemplates();
-            } else if (msg.type === 'deleteTemplate') {
-                const templates = getTemplates().filter(t => t.id !== msg.id);
-                if (templates.length === 0) {
-                    templates.push({ id: 'default', name: 'Default Enhancer', prompt: DEFAULT_SYSTEM_PROMPT });
-                }
-                saveTemplates(templates);
-                if (getActiveTemplateId() === msg.id) {
-                    setActiveTemplateId(templates[0].id);
-                }
-                this.sendTemplates();
-            } else if (msg.type === 'setActive') {
-                setActiveTemplateId(msg.id);
-                this.sendTemplates();
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                this.panel?.webview.postMessage({ type: 'error', error: errorMsg });
             }
         });
 
@@ -78,10 +114,21 @@ export class InputPanel {
         this.panel = undefined;
     }
 
+    private static getNonce(): string {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
     private static getHtml(): string {
+        const nonce = this.getNonce();
         return `<!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: var(--vscode-font-family); padding: 16px; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); height: 100vh; display: flex; flex-direction: column; }
@@ -144,7 +191,7 @@ export class InputPanel {
     <div id="status" class="status"></div>
     <div id="result" class="result"></div>
 
-    <script>
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
         const input = document.getElementById('input');
         const enhanceBtn = document.getElementById('enhanceBtn');
@@ -164,6 +211,13 @@ export class InputPanel {
         let templates = [];
         let activeId = 'default';
         let editingId = null;
+
+        // HTML escape function to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
 
         settingsBtn.onclick = () => {
             const isOpen = settingsPanel.classList.contains('show');
@@ -224,8 +278,9 @@ export class InputPanel {
             if (msg.type === 'templates') {
                 templates = msg.templates;
                 activeId = msg.activeId;
+                // Use escapeHtml to prevent XSS attacks
                 templateSelect.innerHTML = templates.map(t =>
-                    '<option value="' + t.id + '"' + (t.id === activeId ? ' selected' : '') + '>' + t.name + '</option>'
+                    '<option value="' + escapeHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + escapeHtml(t.name) + '</option>'
                 ).join('');
             } else if (msg.type === 'status') {
                 status.className = 'status show enhancing';

@@ -78459,6 +78459,9 @@ var PromptEnhancer = class {
     this.systemPrompt = prompt;
   }
   async initialize() {
+    if (this.context) {
+      return;
+    }
     const { FileSystemContext: FileSystemContext2 } = await Promise.resolve().then(() => (init_dist12(), dist_exports));
     this.context = await FileSystemContext2.create({
       directory: this.workspaceRoot,
@@ -78467,7 +78470,7 @@ var PromptEnhancer = class {
   }
   async enhancePrompt(prompt) {
     if (!this.context) {
-      await this.initialize();
+      throw new Error("PromptEnhancer not initialized. Call initialize() first.");
     }
     const fullPrompt = this.systemPrompt + prompt;
     const response = await this.context.searchAndAsk(prompt, fullPrompt);
@@ -78482,7 +78485,8 @@ var PromptEnhancer = class {
     if (match?.[1]) {
       return match[1].trim();
     }
-    return response.replace(/^(Enhanced|Improved|Rewritten):\s*/i, "").trim() || null;
+    let cleaned = response.replace(/^###\s*BEGIN RESPONSE\s*###\s*/i, "").replace(/###\s*END RESPONSE\s*###\s*$/i, "").replace(/^(Enhanced|Improved|Rewritten):\s*/i, "").trim();
+    return cleaned || null;
   }
   async dispose() {
     if (this.context) {
@@ -78542,39 +78546,70 @@ var InputPanel = class {
     this.panel.webview.html = this.getHtml();
     this.sendTemplates();
     this.panel.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === "enhance" && this.handler) {
-        try {
-          this.panel?.webview.postMessage({ type: "status", status: "enhancing" });
-          const enhanced = await this.handler(msg.text);
-          this.panel?.webview.postMessage({ type: "result", enhanced });
-        } catch (error85) {
-          this.panel?.webview.postMessage({ type: "error", error: String(error85) });
+      try {
+        if (msg.type === "enhance" && this.handler) {
+          if (typeof msg.text !== "string" || msg.text.trim() === "") {
+            this.panel?.webview.postMessage({ type: "error", error: "Input text is required" });
+            return;
+          }
+          if (msg.text.length > 5e4) {
+            this.panel?.webview.postMessage({ type: "error", error: "Input text too long (max 50,000 characters)" });
+            return;
+          }
+          try {
+            this.panel?.webview.postMessage({ type: "status", status: "enhancing" });
+            const enhanced = await this.handler(msg.text);
+            this.panel?.webview.postMessage({ type: "result", enhanced });
+          } catch (error85) {
+            this.panel?.webview.postMessage({ type: "error", error: String(error85) });
+          }
+        } else if (msg.type === "getTemplates") {
+          this.sendTemplates();
+        } else if (msg.type === "saveTemplate") {
+          if (!msg.template || typeof msg.template !== "object") {
+            this.panel?.webview.postMessage({ type: "error", error: "Invalid template data" });
+            return;
+          }
+          if (typeof msg.template.id !== "string" || typeof msg.template.name !== "string" || typeof msg.template.prompt !== "string") {
+            this.panel?.webview.postMessage({ type: "error", error: "Invalid template fields" });
+            return;
+          }
+          if (msg.template.name.length > 100 || msg.template.prompt.length > 1e4) {
+            this.panel?.webview.postMessage({ type: "error", error: "Template name or prompt too long" });
+            return;
+          }
+          const templates = getTemplates();
+          const existing = templates.findIndex((t) => t.id === msg.template.id);
+          if (existing >= 0) {
+            templates[existing] = msg.template;
+          } else {
+            templates.push(msg.template);
+          }
+          await saveTemplates(templates);
+          this.sendTemplates();
+        } else if (msg.type === "deleteTemplate") {
+          if (typeof msg.id !== "string") {
+            return;
+          }
+          const templates = getTemplates().filter((t) => t.id !== msg.id);
+          if (templates.length === 0) {
+            templates.push({ id: "default", name: "Default Enhancer", prompt: DEFAULT_SYSTEM_PROMPT });
+          }
+          await saveTemplates(templates);
+          if (getActiveTemplateId() === msg.id) {
+            await setActiveTemplateId(templates[0].id);
+          }
+          this.sendTemplates();
+        } else if (msg.type === "setActive") {
+          if (typeof msg.id !== "string") {
+            return;
+          }
+          await setActiveTemplateId(msg.id);
+          this.sendTemplates();
         }
-      } else if (msg.type === "getTemplates") {
-        this.sendTemplates();
-      } else if (msg.type === "saveTemplate") {
-        const templates = getTemplates();
-        const existing = templates.findIndex((t) => t.id === msg.template.id);
-        if (existing >= 0) {
-          templates[existing] = msg.template;
-        } else {
-          templates.push(msg.template);
-        }
-        saveTemplates(templates);
-        this.sendTemplates();
-      } else if (msg.type === "deleteTemplate") {
-        const templates = getTemplates().filter((t) => t.id !== msg.id);
-        if (templates.length === 0) {
-          templates.push({ id: "default", name: "Default Enhancer", prompt: DEFAULT_SYSTEM_PROMPT });
-        }
-        saveTemplates(templates);
-        if (getActiveTemplateId() === msg.id) {
-          setActiveTemplateId(templates[0].id);
-        }
-        this.sendTemplates();
-      } else if (msg.type === "setActive") {
-        setActiveTemplateId(msg.id);
-        this.sendTemplates();
+      } catch (error85) {
+        const errorMsg = error85 instanceof Error ? error85.message : String(error85);
+        this.panel?.webview.postMessage({ type: "error", error: errorMsg });
       }
     });
     this.panel.onDidDispose(() => {
@@ -78590,10 +78625,20 @@ var InputPanel = class {
     this.panel?.dispose();
     this.panel = void 0;
   }
+  static getNonce() {
+    let text2 = "";
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 32; i++) {
+      text2 += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text2;
+  }
   static getHtml() {
+    const nonce = this.getNonce();
     return `<!DOCTYPE html>
 <html>
 <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: var(--vscode-font-family); padding: 16px; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); height: 100vh; display: flex; flex-direction: column; }
@@ -78656,7 +78701,7 @@ var InputPanel = class {
     <div id="status" class="status"></div>
     <div id="result" class="result"></div>
 
-    <script>
+    <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
         const input = document.getElementById('input');
         const enhanceBtn = document.getElementById('enhanceBtn');
@@ -78676,6 +78721,13 @@ var InputPanel = class {
         let templates = [];
         let activeId = 'default';
         let editingId = null;
+
+        // HTML escape function to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
 
         settingsBtn.onclick = () => {
             const isOpen = settingsPanel.classList.contains('show');
@@ -78736,8 +78788,9 @@ var InputPanel = class {
             if (msg.type === 'templates') {
                 templates = msg.templates;
                 activeId = msg.activeId;
+                // Use escapeHtml to prevent XSS attacks
                 templateSelect.innerHTML = templates.map(t =>
-                    '<option value="' + t.id + '"' + (t.id === activeId ? ' selected' : '') + '>' + t.name + '</option>'
+                    '<option value="' + escapeHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + escapeHtml(t.name) + '</option>'
                 ).join('');
             } else if (msg.type === 'status') {
                 status.className = 'status show enhancing';
@@ -78766,7 +78819,7 @@ var InputPanel = class {
 // src/extension.ts
 var enhancer = null;
 var statusBar = null;
-var isInitialized = false;
+var initializationPromise = null;
 var globalContext;
 var STORAGE_KEY = "promptEnhancer.templates";
 var ACTIVE_KEY = "promptEnhancer.activeTemplate";
@@ -78782,18 +78835,35 @@ function getDefaultTemplates() {
   }];
 }
 function getTemplates() {
+  if (!globalContext) {
+    return getDefaultTemplates();
+  }
   const stored = globalContext.globalState.get(STORAGE_KEY);
   return stored && stored.length > 0 ? stored : getDefaultTemplates();
 }
-function saveTemplates(templates) {
-  globalContext.globalState.update(STORAGE_KEY, templates);
+async function saveTemplates(templates) {
+  if (!globalContext) {
+    throw new Error("Extension not activated");
+  }
+  await globalContext.globalState.update(STORAGE_KEY, templates);
 }
 function getActiveTemplateId() {
+  if (!globalContext) {
+    return "default";
+  }
   return globalContext.globalState.get(ACTIVE_KEY) || "default";
 }
-function setActiveTemplateId(id) {
-  globalContext.globalState.update(ACTIVE_KEY, id);
+async function setActiveTemplateId(id) {
+  if (!globalContext) {
+    throw new Error("Extension not activated");
+  }
   const templates = getTemplates();
+  const templateExists = templates.some((t) => t.id === id);
+  if (!templateExists) {
+    log(`Warning: Template ID '${id}' not found, falling back to default`);
+    id = templates[0]?.id || "default";
+  }
+  await globalContext.globalState.update(ACTIVE_KEY, id);
   const active = templates.find((t) => t.id === id);
   if (active && enhancer) {
     enhancer.setSystemPrompt(active.prompt);
@@ -78818,15 +78888,18 @@ async function activate(context) {
     InputPanel.createOrShow(context.extensionUri, handleEnhance);
   });
   async function handleEnhance(inputText) {
-    log(`Enhancing: "${inputText.substring(0, 50)}..."`);
+    log(`Enhancing prompt (${inputText.length} chars)`);
     statusBar?.setEnhancing();
     try {
-      if (!isInitialized) {
+      if (!initializationPromise) {
         log("Indexing codebase (first use)...");
-        await enhancer.initialize();
-        isInitialized = true;
-        log("Indexing complete");
+        initializationPromise = enhancer.initialize().catch((error85) => {
+          initializationPromise = null;
+          throw error85;
+        });
       }
+      await initializationPromise;
+      log("Indexing complete");
       const result = await enhancer.enhancePrompt(inputText);
       log(`Enhanced (${result.enhanced.length} chars)`);
       await vscode3.env.clipboard.writeText(result.enhanced);
@@ -78844,6 +78917,13 @@ async function activate(context) {
 async function deactivate() {
   log("Extension deactivating...");
   InputPanel.dispose();
+  if (initializationPromise) {
+    try {
+      await initializationPromise;
+    } catch (error85) {
+      log(`Initialization failed during deactivation: ${error85}`);
+    }
+  }
   if (enhancer) {
     await enhancer.dispose();
   }
