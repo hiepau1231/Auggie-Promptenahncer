@@ -102,32 +102,48 @@ export async function activate(context: vscode.ExtensionContext) {
         log(`Enhancing prompt (${inputText.length} chars)`);
         statusBar?.setEnhancing();
 
-        try {
-            // Promise-based initialization lock to prevent race conditions
-            if (!initializationPromise) {
-                log('Indexing codebase (first use)...');
-                initializationPromise = enhancer!.initialize()
-                    .catch((error) => {
-                        // Reset promise on failure to allow retry
-                        initializationPromise = null;
-                        throw error;
-                    });
+        return await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Enhancing prompt with codebase context",
+            cancellable: false
+        }, async (progress) => {
+            try {
+                // Promise-based initialization lock to prevent race conditions
+                if (!initializationPromise) {
+                    progress.report({ increment: 0, message: "Initializing..." });
+                    log('Indexing codebase (first use)...');
+                    initializationPromise = enhancer!.initialize()
+                        .catch((error) => {
+                            // Reset promise on failure to allow retry
+                            initializationPromise = null;
+                            throw error;
+                        });
+                    
+                    progress.report({ increment: 25, message: "Indexing codebase..." });
+                    await initializationPromise;
+                    log('Indexing complete');
+                } else {
+                    progress.report({ increment: 50, message: "Using cached index..." });
+                    await initializationPromise;
+                }
+
+                progress.report({ increment: 25, message: "Generating enhanced prompt..." });
+                const result = await enhancer!.enhancePrompt(inputText);
+                log(`Enhanced (${result.enhanced.length} chars)`);
+
+                progress.report({ increment: 20, message: "Copying to clipboard..." });
+                await vscode.env.clipboard.writeText(result.enhanced);
+                
+                progress.report({ increment: 5, message: "Done!" });
+                return result.enhanced;
+
+            } catch (error) {
+                log(`Enhancement failed: ${error}`);
+                throw error;
+            } finally {
+                statusBar?.setReady();
             }
-            await initializationPromise;
-            log('Indexing complete');
-
-            const result = await enhancer!.enhancePrompt(inputText);
-            log(`Enhanced (${result.enhanced.length} chars)`);
-
-            await vscode.env.clipboard.writeText(result.enhanced);
-            return result.enhanced;
-
-        } catch (error) {
-            log(`Enhancement failed: ${error}`);
-            throw error;
-        } finally {
-            statusBar?.setReady();
-        }
+        });
     }
 
     context.subscriptions.push(enhanceCommand, statusBar, outputChannel);

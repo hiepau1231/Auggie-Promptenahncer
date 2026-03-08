@@ -78890,26 +78890,40 @@ async function activate(context) {
   async function handleEnhance(inputText) {
     log(`Enhancing prompt (${inputText.length} chars)`);
     statusBar?.setEnhancing();
-    try {
-      if (!initializationPromise) {
-        log("Indexing codebase (first use)...");
-        initializationPromise = enhancer.initialize().catch((error85) => {
-          initializationPromise = null;
-          throw error85;
-        });
+    return await vscode3.window.withProgress({
+      location: vscode3.ProgressLocation.Notification,
+      title: "Enhancing prompt with codebase context",
+      cancellable: false
+    }, async (progress) => {
+      try {
+        if (!initializationPromise) {
+          progress.report({ increment: 0, message: "Initializing..." });
+          log("Indexing codebase (first use)...");
+          initializationPromise = enhancer.initialize().catch((error85) => {
+            initializationPromise = null;
+            throw error85;
+          });
+          progress.report({ increment: 25, message: "Indexing codebase..." });
+          await initializationPromise;
+          log("Indexing complete");
+        } else {
+          progress.report({ increment: 50, message: "Using cached index..." });
+          await initializationPromise;
+        }
+        progress.report({ increment: 25, message: "Generating enhanced prompt..." });
+        const result = await enhancer.enhancePrompt(inputText);
+        log(`Enhanced (${result.enhanced.length} chars)`);
+        progress.report({ increment: 20, message: "Copying to clipboard..." });
+        await vscode3.env.clipboard.writeText(result.enhanced);
+        progress.report({ increment: 5, message: "Done!" });
+        return result.enhanced;
+      } catch (error85) {
+        log(`Enhancement failed: ${error85}`);
+        throw error85;
+      } finally {
+        statusBar?.setReady();
       }
-      await initializationPromise;
-      log("Indexing complete");
-      const result = await enhancer.enhancePrompt(inputText);
-      log(`Enhanced (${result.enhanced.length} chars)`);
-      await vscode3.env.clipboard.writeText(result.enhanced);
-      return result.enhanced;
-    } catch (error85) {
-      log(`Enhancement failed: ${error85}`);
-      throw error85;
-    } finally {
-      statusBar?.setReady();
-    }
+    });
   }
   context.subscriptions.push(enhanceCommand, statusBar, outputChannel);
   log("Extension activated (lazy init - will index on first use)");
