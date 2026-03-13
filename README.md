@@ -20,6 +20,40 @@
 
 ---
 
+## Claude Code — Lệnh /enhance
+
+Nếu bạn dùng [Claude Code](https://claude.ai/code) thay vì VS Code extension, cài đặt lệnh `/enhance` bằng 1 lệnh:
+
+**macOS / Linux** (yêu cầu `curl` hoặc `wget`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+Chạy lần đầu để cho phép scripts (chỉ cần 1 lần):
+
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Sau đó cài đặt:
+
+```powershell
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/install.ps1 -OutFile install.ps1; .\install.ps1; Remove-Item install.ps1
+```
+
+Sau khi cài xong, dùng trong bất kỳ project nào:
+
+```
+/enhance <prompt của bạn>
+```
+
+> Lệnh này hoạt động cho cả install lẫn update — chạy lại bất cứ lúc nào để lấy phiên bản mới nhất.
+
+---
+
 ## Tính năng
 
 - ✨ **Cải thiện thông minh** - Biến đổi prompts mơ hồ thành hướng dẫn chi tiết
