@@ -1,7 +1,7 @@
 {
   "name": "auggie-promptenhancer",
   "displayName": "Auggie Prompt Enhancer",
-  "description": "Enhance your AI prompts with context-aware improvements using Augment SDK",
+  "description": "Nâng cao prompt AI của bạn với cải tiến nhận thức ngữ cảnh sử dụng Augment SDK",
   "version": "0.1.0",
   "publisher": "AugieeCredit",
   "icon": "icon.png",
@@ -36,7 +36,7 @@
     "commands": [
       {
         "command": "promptEnhancer.enhance",
-        "title": "Enhance Prompt",
+        "title": "Nâng Cao Prompt",
         "category": "Prompt Enhancer",
         "icon": "$(sparkle)"
       }
@@ -47,7 +47,7 @@
         "promptEnhancer.showStatusBarButton": {
           "type": "boolean",
           "default": true,
-          "description": "Show the Enhance button in the status bar"
+          "description": "Hiển thị nút Nâng Cao trong thanh trạng thái"
         }
       }
     }

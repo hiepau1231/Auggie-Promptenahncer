@@ -32,11 +32,11 @@ export class InputPanel {
                 if (msg.type === 'enhance' && this.handler) {
                     // Validate input
                     if (typeof msg.text !== 'string' || msg.text.trim() === '') {
-                        this.panel?.webview.postMessage({ type: 'error', error: 'Input text is required' });
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Văn bản đầu vào là bắt buộc' });
                         return;
                     }
                     if (msg.text.length > 50000) {
-                        this.panel?.webview.postMessage({ type: 'error', error: 'Input text too long (max 50,000 characters)' });
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Văn bản đầu vào quá dài (tối đa 50,000 ký tự)' });
                         return;
                     }
                     
@@ -52,15 +52,15 @@ export class InputPanel {
                 } else if (msg.type === 'saveTemplate') {
                     // Validate template data
                     if (!msg.template || typeof msg.template !== 'object') {
-                        this.panel?.webview.postMessage({ type: 'error', error: 'Invalid template data' });
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Dữ liệu mẫu không hợp lệ' });
                         return;
                     }
                     if (typeof msg.template.id !== 'string' || typeof msg.template.name !== 'string' || typeof msg.template.prompt !== 'string') {
-                        this.panel?.webview.postMessage({ type: 'error', error: 'Invalid template fields' });
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Các trường mẫu không hợp lệ' });
                         return;
                     }
                     if (msg.template.name.length > 100 || msg.template.prompt.length > 10000) {
-                        this.panel?.webview.postMessage({ type: 'error', error: 'Template name or prompt too long' });
+                        this.panel?.webview.postMessage({ type: 'error', error: 'Tên mẫu hoặc prompt quá dài' });
                         return;
                     }
                     
@@ -80,7 +80,7 @@ export class InputPanel {
                     
                     const templates = getTemplates().filter(t => t.id !== msg.id);
                     if (templates.length === 0) {
-                        templates.push({ id: 'default', name: 'Default Enhancer', prompt: DEFAULT_SYSTEM_PROMPT });
+                        templates.push({ id: 'default', name: 'Mẫu Mặc Định', prompt: DEFAULT_SYSTEM_PROMPT });
                     }
                     await saveTemplates(templates);
                     if (getActiveTemplateId() === msg.id) {
@@ -162,8 +162,8 @@ export class InputPanel {
 </head>
 <body>
     <div class="header">
-        <h3>✨ Prompt Enhancer</h3>
-        <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+        <h3>✨ Nâng Cao Prompt</h3>
+        <button class="icon-btn" id="settingsBtn" title="Cài đặt">⚙️</button>
     </div>
 
     <div class="template-row">
@@ -172,21 +172,21 @@ export class InputPanel {
     </div>
 
     <div id="settingsPanel" class="settings-panel">
-        <label>Template Name</label>
-        <input type="text" id="templateName" placeholder="My Template">
+        <label>Tên Mẫu</label>
+        <input type="text" id="templateName" placeholder="Mẫu của tôi">
         <label>System Prompt</label>
-        <textarea id="templatePrompt" placeholder="Enter system prompt..."></textarea>
+        <textarea id="templatePrompt" placeholder="Nhập system prompt..."></textarea>
         <div class="btn-row">
-            <button id="saveTemplateBtn">Save</button>
-            <button class="btn-secondary" id="deleteTemplateBtn">Delete</button>
-            <button class="btn-secondary" id="closeSettingsBtn">Close</button>
+            <button id="saveTemplateBtn">Lưu</button>
+            <button class="btn-secondary" id="deleteTemplateBtn">Xóa</button>
+            <button class="btn-secondary" id="closeSettingsBtn">Đóng</button>
         </div>
     </div>
 
-    <textarea id="input" placeholder="Type your prompt here..."></textarea>
+    <textarea id="input" placeholder="Nhập prompt của bạn ở đây..."></textarea>
     <div class="btn-row">
-        <button id="enhanceBtn" class="btn-enhance">Enhance Prompt</button>
-        <button id="clearBtn" class="btn-secondary">Clear</button>
+        <button id="enhanceBtn" class="btn-enhance">Nâng Cao Prompt</button>
+        <button id="clearBtn" class="btn-secondary">Xóa</button>
     </div>
     <div id="status" class="status"></div>
     <div id="result" class="result"></div>
@@ -284,11 +284,11 @@ export class InputPanel {
                 ).join('');
             } else if (msg.type === 'status') {
                 status.className = 'status show enhancing';
-                status.textContent = '⏳ Enhancing...';
+                status.textContent = '⏳ Đang nâng cao...';
                 enhanceBtn.disabled = true;
             } else if (msg.type === 'result') {
                 status.className = 'status show success';
-                status.textContent = '✅ Copied! Paste with Ctrl+V';
+                status.textContent = '✅ Đã sao chép! Dán bằng Ctrl+V';
                 result.className = 'result show';
                 result.textContent = msg.enhanced;
                 enhanceBtn.disabled = false;

@@ -6,15 +6,16 @@ export interface EnhanceResult {
 }
 
 export const DEFAULT_SYSTEM_PROMPT =
-    'Here is an instruction that I\'d like to give you, but it needs to be improved. ' +
-    'Rewrite and enhance this instruction to make it clearer, more specific, ' +
-    'less ambiguous, and correct any mistakes. ' +
-    'If there is code in triple backticks (```) consider whether it is a code sample and should remain unchanged. ' +
-    'Reply with the following format:\n\n' +
+    'Đây là một chỉ dẫn mà tôi muốn đưa cho bạn, nhưng nó cần được cải thiện. ' +
+    'Hãy viết lại và nâng cao chỉ dẫn này để làm cho nó rõ ràng hơn, cụ thể hơn, ' +
+    'ít mơ hồ hơn, và sửa các lỗi sai nếu có. ' +
+    'QUAN TRỌNG: Hãy trả lời bằng CHÍNH NGÔN NGỮ của chỉ dẫn gốc (nếu tiếng Việt thì trả lời tiếng Việt, nếu tiếng Anh thì trả lời tiếng Anh). ' +
+    'Nếu có code trong dấu ba backticks (```) hãy xem xét xem đó có phải là code mẫu và nên giữ nguyên không. ' +
+    'Trả lời theo định dạng sau:\n\n' +
     '### BEGIN RESPONSE ###\n' +
-    '<enhanced-prompt>enhanced prompt goes here</enhanced-prompt>\n' +
+    '<enhanced-prompt>prompt đã được cải thiện ở đây</enhanced-prompt>\n' +
     '### END RESPONSE ###\n\n' +
-    'Here is my original instruction:\n\n';
+    'Đây là chỉ dẫn gốc của tôi:\n\n';
 
 export class PromptEnhancer {
     private context: FileSystemContext | null = null;
@@ -44,17 +45,19 @@ export class PromptEnhancer {
 
     async enhancePrompt(prompt: string): Promise<EnhanceResult> {
         if (!this.context) {
-            throw new Error('PromptEnhancer not initialized. Call initialize() first.');
+            throw new Error('PromptEnhancer chưa được khởi tạo. Hãy gọi initialize() trước.');
         }
 
         // Note: searchAndAsk(query, question) - first arg is search query for codebase retrieval,
         // second arg is the full prompt sent to LLM. System prompt is prepended to user prompt.
-        const fullPrompt = this.systemPrompt + prompt;
+        // Language reminder is appended AFTER codebase context injection to prevent English override.
+        const languageReminder = '\n\nNHẮC LẠI QUAN TRỌNG: Bạn PHẢI trả lời bằng CÙNG ngôn ngữ với prompt gốc bên trên. Nếu prompt gốc bằng tiếng Việt thì trả lời tiếng Việt. Nếu tiếng Anh thì tiếng Anh.';
+        const fullPrompt = this.systemPrompt + prompt + languageReminder;
         const response = await this.context.searchAndAsk(prompt, fullPrompt);
         const enhanced = this.parseEnhancedPrompt(response);
 
         if (!enhanced) {
-            throw new Error('Failed to parse enhanced prompt from response');
+            throw new Error('Không thể phân tích prompt đã nâng cao từ phản hồi');
         }
 
         return { original: prompt, enhanced };

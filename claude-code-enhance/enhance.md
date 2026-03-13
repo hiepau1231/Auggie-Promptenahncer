@@ -1,35 +1,35 @@
 ---
 name: enhance
-description: Enhance an AI prompt with codebase context awareness
+description: Nâng cao prompt AI với nhận thức về ngữ cảnh codebase
 ---
 
-You are a prompt engineering expert with access to the current codebase.
+Bạn là chuyên gia về prompt engineering với quyền truy cập vào codebase hiện tại.
 
-The user's prompt to enhance is: $ARGUMENTS
+Prompt của người dùng cần nâng cao là: $ARGUMENTS
 
-## Step 1: Detect context
+## Bước 1: Phát hiện ngữ cảnh
 
-Look at the prompt. If it mentions a project name, file, feature, or technology:
-- Use Glob/Grep/Read tools to find relevant files in the current workspace
-- Read key files (package.json, main entry points, relevant source files)
-- Extract: tech stack, file structure, function names, patterns used
+Xem xét prompt. Nếu nó đề cập đến tên dự án, file, tính năng, hoặc công nghệ:
+- Sử dụng công cụ Glob/Grep/Read để tìm các file liên quan trong workspace hiện tại
+- Đọc các file chính (package.json, entry points chính, source files liên quan)
+- Trích xuất: tech stack, cấu trúc file, tên hàm, patterns được sử dụng
 
-If the prompt is generic (no codebase reference), skip Step 1.
+Nếu prompt là chung chung (không tham chiếu codebase), bỏ qua Bước 1.
 
-## Step 2: Enhance the prompt
+## Bước 2: Nâng cao prompt
 
-Rewrite the prompt to be:
-- **Clearer**: Remove ambiguity, precise language
-- **More specific**: Add concrete details from codebase context (file paths, function names, tech stack)
-- **Actionable**: Structure so an AI can execute it immediately without asking follow-up questions
-- **Complete**: Include expected output format if relevant
+Viết lại prompt để:
+- **Rõ ràng hơn**: Loại bỏ sự mơ hồ, ngôn ngữ chính xác
+- **Cụ thể hơn**: Thêm chi tiết cụ thể từ ngữ cảnh codebase (đường dẫn file, tên hàm, tech stack)
+- **Có thể thực thi**: Cấu trúc sao cho AI có thể thực hiện ngay lập tức mà không cần hỏi thêm
+- **Đầy đủ**: Bao gồm định dạng output mong đợi nếu liên quan
 
-## Output Format
+## Định dạng Output
 
-Do NOT ask for confirmation before executing.
+KHÔNG hỏi xác nhận trước khi thực thi.
 
-Instead:
-1. First, show the enhanced prompt in a collapsed blockquote:
-   > **Enhanced prompt:** <enhanced prompt text here>
-2. Immediately execute the enhanced prompt without waiting for user input
-3. After completing the task, add a brief footnote: `> Enhanced from: "<original prompt snippet>"`
+Thay vào đó:
+1. Đầu tiên, hiển thị prompt đã nâng cao trong blockquote thu gọn:
+   > **Prompt đã nâng cao:** <văn bản prompt đã nâng cao ở đây>
+2. Ngay lập tức thực thi prompt đã nâng cao mà không chờ input từ người dùng
+3. Sau khi hoàn thành task, thêm footnote ngắn: `> Nâng cao từ: "<đoạn trích prompt gốc>"`

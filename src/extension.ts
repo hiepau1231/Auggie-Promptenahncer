@@ -26,7 +26,7 @@ function log(message: string) {
 function getDefaultTemplates(): PromptTemplate[] {
     return [{
         id: 'default',
-        name: 'Default Enhancer',
+        name: 'Mẫu Mặc Định',
         prompt: DEFAULT_SYSTEM_PROMPT
     }];
 }
@@ -41,7 +41,7 @@ export function getTemplates(): PromptTemplate[] {
 
 export async function saveTemplates(templates: PromptTemplate[]): Promise<void> {
     if (!globalContext) {
-        throw new Error('Extension not activated');
+        throw new Error('Extension chưa được kích hoạt');
     }
     await globalContext.globalState.update(STORAGE_KEY, templates);
 }
@@ -55,7 +55,7 @@ export function getActiveTemplateId(): string {
 
 export async function setActiveTemplateId(id: string): Promise<void> {
     if (!globalContext) {
-        throw new Error('Extension not activated');
+        throw new Error('Extension chưa được kích hoạt');
     }
     
     // Validate that the template ID exists
@@ -104,13 +104,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
         return await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Enhancing prompt with codebase context",
+            title: "Đang nâng cao prompt với ngữ cảnh codebase",
             cancellable: false
         }, async (progress) => {
             try {
                 // Promise-based initialization lock to prevent race conditions
                 if (!initializationPromise) {
-                    progress.report({ increment: 0, message: "Initializing..." });
+                    progress.report({ increment: 0, message: "Đang khởi tạo..." });
                     log('Indexing codebase (first use)...');
                     initializationPromise = enhancer!.initialize()
                         .catch((error) => {
@@ -119,22 +119,22 @@ export async function activate(context: vscode.ExtensionContext) {
                             throw error;
                         });
                     
-                    progress.report({ increment: 25, message: "Indexing codebase..." });
+                    progress.report({ increment: 25, message: "Đang lập chỉ mục codebase..." });
                     await initializationPromise;
                     log('Indexing complete');
                 } else {
-                    progress.report({ increment: 50, message: "Using cached index..." });
+                    progress.report({ increment: 50, message: "Đang sử dụng chỉ mục đã lưu..." });
                     await initializationPromise;
                 }
 
-                progress.report({ increment: 25, message: "Generating enhanced prompt..." });
+                progress.report({ increment: 25, message: "Đang tạo prompt đã nâng cao..." });
                 const result = await enhancer!.enhancePrompt(inputText);
                 log(`Enhanced (${result.enhanced.length} chars)`);
 
-                progress.report({ increment: 20, message: "Copying to clipboard..." });
+                progress.report({ increment: 20, message: "Đang sao chép vào clipboard..." });
                 await vscode.env.clipboard.writeText(result.enhanced);
                 
-                progress.report({ increment: 5, message: "Done!" });
+                progress.report({ increment: 5, message: "Hoàn tất!" });
                 return result.enhanced;
 
             } catch (error) {

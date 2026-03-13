@@ -78447,7 +78447,7 @@ module.exports = __toCommonJS(extension_exports);
 var vscode3 = __toESM(require("vscode"));
 
 // src/promptEnhancer.ts
-var DEFAULT_SYSTEM_PROMPT = "Here is an instruction that I'd like to give you, but it needs to be improved. Rewrite and enhance this instruction to make it clearer, more specific, less ambiguous, and correct any mistakes. If there is code in triple backticks (```) consider whether it is a code sample and should remain unchanged. Reply with the following format:\n\n### BEGIN RESPONSE ###\n<enhanced-prompt>enhanced prompt goes here</enhanced-prompt>\n### END RESPONSE ###\n\nHere is my original instruction:\n\n";
+var DEFAULT_SYSTEM_PROMPT = "\u0110\xE2y l\xE0 m\u1ED9t ch\u1EC9 d\u1EABn m\xE0 t\xF4i mu\u1ED1n \u0111\u01B0a cho b\u1EA1n, nh\u01B0ng n\xF3 c\u1EA7n \u0111\u01B0\u1EE3c c\u1EA3i thi\u1EC7n. H\xE3y vi\u1EBFt l\u1EA1i v\xE0 n\xE2ng cao ch\u1EC9 d\u1EABn n\xE0y \u0111\u1EC3 l\xE0m cho n\xF3 r\xF5 r\xE0ng h\u01A1n, c\u1EE5 th\u1EC3 h\u01A1n, \xEDt m\u01A1 h\u1ED3 h\u01A1n, v\xE0 s\u1EEDa c\xE1c l\u1ED7i sai n\u1EBFu c\xF3. QUAN TR\u1ECCNG: H\xE3y tr\u1EA3 l\u1EDDi b\u1EB1ng CH\xCDNH NG\xD4N NG\u1EEE c\u1EE7a ch\u1EC9 d\u1EABn g\u1ED1c (n\u1EBFu ti\u1EBFng Vi\u1EC7t th\xEC tr\u1EA3 l\u1EDDi ti\u1EBFng Vi\u1EC7t, n\u1EBFu ti\u1EBFng Anh th\xEC tr\u1EA3 l\u1EDDi ti\u1EBFng Anh). N\u1EBFu c\xF3 code trong d\u1EA5u ba backticks (```) h\xE3y xem x\xE9t xem \u0111\xF3 c\xF3 ph\u1EA3i l\xE0 code m\u1EABu v\xE0 n\xEAn gi\u1EEF nguy\xEAn kh\xF4ng. Tr\u1EA3 l\u1EDDi theo \u0111\u1ECBnh d\u1EA1ng sau:\n\n### BEGIN RESPONSE ###\n<enhanced-prompt>prompt \u0111\xE3 \u0111\u01B0\u1EE3c c\u1EA3i thi\u1EC7n \u1EDF \u0111\xE2y</enhanced-prompt>\n### END RESPONSE ###\n\n\u0110\xE2y l\xE0 ch\u1EC9 d\u1EABn g\u1ED1c c\u1EE7a t\xF4i:\n\n";
 var PromptEnhancer = class {
   context = null;
   workspaceRoot;
@@ -78470,13 +78470,13 @@ var PromptEnhancer = class {
   }
   async enhancePrompt(prompt) {
     if (!this.context) {
-      throw new Error("PromptEnhancer not initialized. Call initialize() first.");
+      throw new Error("PromptEnhancer ch\u01B0a \u0111\u01B0\u1EE3c kh\u1EDFi t\u1EA1o. H\xE3y g\u1ECDi initialize() tr\u01B0\u1EDBc.");
     }
     const fullPrompt = this.systemPrompt + prompt;
     const response = await this.context.searchAndAsk(prompt, fullPrompt);
     const enhanced = this.parseEnhancedPrompt(response);
     if (!enhanced) {
-      throw new Error("Failed to parse enhanced prompt from response");
+      throw new Error("Kh\xF4ng th\u1EC3 ph\xE2n t\xEDch prompt \u0111\xE3 n\xE2ng cao t\u1EEB ph\u1EA3n h\u1ED3i");
     }
     return { original: prompt, enhanced };
   }
@@ -78506,19 +78506,19 @@ var StatusBarManager = class {
       100
     );
     this.statusBarItem.command = "promptEnhancer.enhance";
-    this.statusBarItem.text = "$(loading~spin) Loading...";
-    this.statusBarItem.tooltip = "Initializing Prompt Enhancer...";
+    this.statusBarItem.text = "$(loading~spin) \u0110ang t\u1EA3i...";
+    this.statusBarItem.tooltip = "\u0110ang kh\u1EDFi t\u1EA1o Prompt Enhancer...";
   }
   show() {
     this.statusBarItem.show();
   }
   setReady() {
-    this.statusBarItem.text = "$(sparkle) Enhance";
-    this.statusBarItem.tooltip = "Click to enhance a prompt";
+    this.statusBarItem.text = "$(sparkle) N\xE2ng Cao";
+    this.statusBarItem.tooltip = "Nh\u1EA5n \u0111\u1EC3 n\xE2ng cao prompt";
   }
   setEnhancing() {
-    this.statusBarItem.text = "$(sync~spin) Enhancing...";
-    this.statusBarItem.tooltip = "Enhancing your prompt...";
+    this.statusBarItem.text = "$(sync~spin) \u0110ang n\xE2ng cao...";
+    this.statusBarItem.tooltip = "\u0110ang n\xE2ng cao prompt c\u1EE7a b\u1EA1n...";
   }
   dispose() {
     this.statusBarItem.dispose();
@@ -78549,11 +78549,11 @@ var InputPanel = class {
       try {
         if (msg.type === "enhance" && this.handler) {
           if (typeof msg.text !== "string" || msg.text.trim() === "") {
-            this.panel?.webview.postMessage({ type: "error", error: "Input text is required" });
+            this.panel?.webview.postMessage({ type: "error", error: "V\u0103n b\u1EA3n \u0111\u1EA7u v\xE0o l\xE0 b\u1EAFt bu\u1ED9c" });
             return;
           }
           if (msg.text.length > 5e4) {
-            this.panel?.webview.postMessage({ type: "error", error: "Input text too long (max 50,000 characters)" });
+            this.panel?.webview.postMessage({ type: "error", error: "V\u0103n b\u1EA3n \u0111\u1EA7u v\xE0o qu\xE1 d\xE0i (t\u1ED1i \u0111a 50,000 k\xFD t\u1EF1)" });
             return;
           }
           try {
@@ -78567,15 +78567,15 @@ var InputPanel = class {
           this.sendTemplates();
         } else if (msg.type === "saveTemplate") {
           if (!msg.template || typeof msg.template !== "object") {
-            this.panel?.webview.postMessage({ type: "error", error: "Invalid template data" });
+            this.panel?.webview.postMessage({ type: "error", error: "D\u1EEF li\u1EC7u m\u1EABu kh\xF4ng h\u1EE3p l\u1EC7" });
             return;
           }
           if (typeof msg.template.id !== "string" || typeof msg.template.name !== "string" || typeof msg.template.prompt !== "string") {
-            this.panel?.webview.postMessage({ type: "error", error: "Invalid template fields" });
+            this.panel?.webview.postMessage({ type: "error", error: "C\xE1c tr\u01B0\u1EDDng m\u1EABu kh\xF4ng h\u1EE3p l\u1EC7" });
             return;
           }
           if (msg.template.name.length > 100 || msg.template.prompt.length > 1e4) {
-            this.panel?.webview.postMessage({ type: "error", error: "Template name or prompt too long" });
+            this.panel?.webview.postMessage({ type: "error", error: "T\xEAn m\u1EABu ho\u1EB7c prompt qu\xE1 d\xE0i" });
             return;
           }
           const templates = getTemplates();
@@ -78593,7 +78593,7 @@ var InputPanel = class {
           }
           const templates = getTemplates().filter((t) => t.id !== msg.id);
           if (templates.length === 0) {
-            templates.push({ id: "default", name: "Default Enhancer", prompt: DEFAULT_SYSTEM_PROMPT });
+            templates.push({ id: "default", name: "M\u1EABu M\u1EB7c \u0110\u1ECBnh", prompt: DEFAULT_SYSTEM_PROMPT });
           }
           await saveTemplates(templates);
           if (getActiveTemplateId() === msg.id) {
@@ -78672,8 +78672,8 @@ var InputPanel = class {
 </head>
 <body>
     <div class="header">
-        <h3>\u2728 Prompt Enhancer</h3>
-        <button class="icon-btn" id="settingsBtn" title="Settings">\u2699\uFE0F</button>
+        <h3>\u2728 N\xE2ng Cao Prompt</h3>
+        <button class="icon-btn" id="settingsBtn" title="C\xE0i \u0111\u1EB7t">\u2699\uFE0F</button>
     </div>
 
     <div class="template-row">
@@ -78682,21 +78682,21 @@ var InputPanel = class {
     </div>
 
     <div id="settingsPanel" class="settings-panel">
-        <label>Template Name</label>
-        <input type="text" id="templateName" placeholder="My Template">
+        <label>T\xEAn M\u1EABu</label>
+        <input type="text" id="templateName" placeholder="M\u1EABu c\u1EE7a t\xF4i">
         <label>System Prompt</label>
-        <textarea id="templatePrompt" placeholder="Enter system prompt..."></textarea>
+        <textarea id="templatePrompt" placeholder="Nh\u1EADp system prompt..."></textarea>
         <div class="btn-row">
-            <button id="saveTemplateBtn">Save</button>
-            <button class="btn-secondary" id="deleteTemplateBtn">Delete</button>
-            <button class="btn-secondary" id="closeSettingsBtn">Close</button>
+            <button id="saveTemplateBtn">L\u01B0u</button>
+            <button class="btn-secondary" id="deleteTemplateBtn">X\xF3a</button>
+            <button class="btn-secondary" id="closeSettingsBtn">\u0110\xF3ng</button>
         </div>
     </div>
 
-    <textarea id="input" placeholder="Type your prompt here..."></textarea>
+    <textarea id="input" placeholder="Nh\u1EADp prompt c\u1EE7a b\u1EA1n \u1EDF \u0111\xE2y..."></textarea>
     <div class="btn-row">
-        <button id="enhanceBtn" class="btn-enhance">Enhance Prompt</button>
-        <button id="clearBtn" class="btn-secondary">Clear</button>
+        <button id="enhanceBtn" class="btn-enhance">N\xE2ng Cao Prompt</button>
+        <button id="clearBtn" class="btn-secondary">X\xF3a</button>
     </div>
     <div id="status" class="status"></div>
     <div id="result" class="result"></div>
@@ -78794,11 +78794,11 @@ var InputPanel = class {
                 ).join('');
             } else if (msg.type === 'status') {
                 status.className = 'status show enhancing';
-                status.textContent = '\u23F3 Enhancing...';
+                status.textContent = '\u23F3 \u0110ang n\xE2ng cao...';
                 enhanceBtn.disabled = true;
             } else if (msg.type === 'result') {
                 status.className = 'status show success';
-                status.textContent = '\u2705 Copied! Paste with Ctrl+V';
+                status.textContent = '\u2705 \u0110\xE3 sao ch\xE9p! D\xE1n b\u1EB1ng Ctrl+V';
                 result.className = 'result show';
                 result.textContent = msg.enhanced;
                 enhanceBtn.disabled = false;
@@ -78830,7 +78830,7 @@ function log(message) {
 function getDefaultTemplates() {
   return [{
     id: "default",
-    name: "Default Enhancer",
+    name: "M\u1EABu M\u1EB7c \u0110\u1ECBnh",
     prompt: DEFAULT_SYSTEM_PROMPT
   }];
 }
@@ -78843,7 +78843,7 @@ function getTemplates() {
 }
 async function saveTemplates(templates) {
   if (!globalContext) {
-    throw new Error("Extension not activated");
+    throw new Error("Extension ch\u01B0a \u0111\u01B0\u1EE3c k\xEDch ho\u1EA1t");
   }
   await globalContext.globalState.update(STORAGE_KEY, templates);
 }
@@ -78855,7 +78855,7 @@ function getActiveTemplateId() {
 }
 async function setActiveTemplateId(id) {
   if (!globalContext) {
-    throw new Error("Extension not activated");
+    throw new Error("Extension ch\u01B0a \u0111\u01B0\u1EE3c k\xEDch ho\u1EA1t");
   }
   const templates = getTemplates();
   const templateExists = templates.some((t) => t.id === id);
@@ -78892,30 +78892,30 @@ async function activate(context) {
     statusBar?.setEnhancing();
     return await vscode3.window.withProgress({
       location: vscode3.ProgressLocation.Notification,
-      title: "Enhancing prompt with codebase context",
+      title: "\u0110ang n\xE2ng cao prompt v\u1EDBi ng\u1EEF c\u1EA3nh codebase",
       cancellable: false
     }, async (progress) => {
       try {
         if (!initializationPromise) {
-          progress.report({ increment: 0, message: "Initializing..." });
+          progress.report({ increment: 0, message: "\u0110ang kh\u1EDFi t\u1EA1o..." });
           log("Indexing codebase (first use)...");
           initializationPromise = enhancer.initialize().catch((error85) => {
             initializationPromise = null;
             throw error85;
           });
-          progress.report({ increment: 25, message: "Indexing codebase..." });
+          progress.report({ increment: 25, message: "\u0110ang l\u1EADp ch\u1EC9 m\u1EE5c codebase..." });
           await initializationPromise;
           log("Indexing complete");
         } else {
-          progress.report({ increment: 50, message: "Using cached index..." });
+          progress.report({ increment: 50, message: "\u0110ang s\u1EED d\u1EE5ng ch\u1EC9 m\u1EE5c \u0111\xE3 l\u01B0u..." });
           await initializationPromise;
         }
-        progress.report({ increment: 25, message: "Generating enhanced prompt..." });
+        progress.report({ increment: 25, message: "\u0110ang t\u1EA1o prompt \u0111\xE3 n\xE2ng cao..." });
         const result = await enhancer.enhancePrompt(inputText);
         log(`Enhanced (${result.enhanced.length} chars)`);
-        progress.report({ increment: 20, message: "Copying to clipboard..." });
+        progress.report({ increment: 20, message: "\u0110ang sao ch\xE9p v\xE0o clipboard..." });
         await vscode3.env.clipboard.writeText(result.enhanced);
-        progress.report({ increment: 5, message: "Done!" });
+        progress.report({ increment: 5, message: "Ho\xE0n t\u1EA5t!" });
         return result.enhanced;
       } catch (error85) {
         log(`Enhancement failed: ${error85}`);
