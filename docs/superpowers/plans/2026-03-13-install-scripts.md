@@ -22,9 +22,10 @@
 ```bash
 #!/usr/bin/env bash
 
-ENHANCE_URL="https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/claude-code-enhance/enhance.md"
+ENHANCE_URL="https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenhancer/main/claude-code-enhance/enhance.md"
 DEST_DIR="$HOME/.claude/commands"
 DEST_FILE="$DEST_DIR/enhance.md"
+TEMP_FILE="/tmp/enhance_tmp_$$.md"
 
 # Create destination directory
 if ! mkdir -p "$DEST_DIR" 2>/dev/null; then
@@ -32,19 +33,28 @@ if ! mkdir -p "$DEST_DIR" 2>/dev/null; then
   exit 1
 fi
 
-# Download enhance.md (curl preferred, wget fallback)
+# Download to temp file first (atomic install/update)
 if command -v curl &>/dev/null; then
-  if ! curl -fsSL "$ENHANCE_URL" -o "$DEST_FILE"; then
+  if ! curl -fsSL "$ENHANCE_URL" -o "$TEMP_FILE"; then
     echo "❌ Failed to download enhance.md. Check your internet connection."
+    rm -f "$TEMP_FILE"
     exit 1
   fi
 elif command -v wget &>/dev/null; then
-  if ! wget -q "$ENHANCE_URL" -O "$DEST_FILE"; then
+  if ! wget -q "$ENHANCE_URL" -O "$TEMP_FILE"; then
     echo "❌ Failed to download enhance.md. Check your internet connection."
+    rm -f "$TEMP_FILE"
     exit 1
   fi
 else
   echo "❌ curl or wget is required. Please install one and try again."
+  exit 1
+fi
+
+# Move temp file to destination (atomic)
+if ! mv "$TEMP_FILE" "$DEST_FILE" 2>/dev/null; then
+  echo "❌ Failed to install enhance.md. Check permissions."
+  rm -f "$TEMP_FILE"
   exit 1
 fi
 
@@ -67,13 +77,6 @@ bash -n install.sh
 ```
 Expected: không có output (không có lỗi syntax)
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add install.sh
-git commit -m "feat: add install.sh for macOS/Linux"
-```
-
 ---
 
 ## Chunk 2: install.ps1
@@ -90,7 +93,7 @@ Download về temp file trước, sau đó move vào destination để tránh đ
 ```powershell
 $ErrorActionPreference = "Stop"
 
-$EnhanceUrl = "https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/claude-code-enhance/enhance.md"
+$EnhanceUrl = "https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenhancer/main/claude-code-enhance/enhance.md"
 $DestDir = Join-Path $env:USERPROFILE ".claude\commands"
 $DestFile = Join-Path $DestDir "enhance.md"
 $TempFile = Join-Path $env:TEMP "enhance_tmp_$([System.IO.Path]::GetRandomFileName()).md"
@@ -132,13 +135,6 @@ powershell -NoProfile -Command "$errors = $null; [System.Management.Automation.L
 ```
 Expected: `No syntax errors`
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add install.ps1
-git commit -m "feat: add install.ps1 for Windows"
-```
-
 ---
 
 ## Chunk 3: Update README.md
@@ -166,7 +162,7 @@ Nếu bạn dùng [Claude Code](https://claude.ai/code) thay vì VS Code extensi
 
 **macOS / Linux** (yêu cầu `curl` hoặc `wget`):
 
-    curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenhancer/main/install.sh | bash
 
 **Windows (PowerShell):**
 
@@ -176,7 +172,7 @@ Chạy lần đầu để cho phép scripts (chỉ cần 1 lần):
 
 Sau đó cài đặt:
 
-    Invoke-WebRequest -Uri https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/install.ps1 -OutFile install.ps1; .\install.ps1; Remove-Item install.ps1
+    Invoke-WebRequest -Uri https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenhancer/main/install.ps1 -OutFile install.ps1; .\install.ps1; Remove-Item install.ps1
 
 Sau khi cài xong, dùng trong bất kỳ project nào:
 
@@ -185,13 +181,6 @@ Sau khi cài xong, dùng trong bất kỳ project nào:
 > Lệnh này hoạt động cho cả install lẫn update — chạy lại bất cứ lúc nào để lấy phiên bản mới nhất.
 
 ---
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add README.md
-git commit -m "docs: add Claude Code /enhance install instructions to README"
 ```
 
 ---
@@ -213,12 +202,12 @@ Expected: có `x` trong permissions (e.g., `-rwxr-xr-x`)
 ls -la install.ps1
 ```
 
-- [ ] **Step 3: Dry-run install.sh — test network error path**
+- [ ] **Step 3: Test install.sh error handling**
 
-Tạm thời thay URL trong script để test lỗi (dùng sed, không sửa file gốc):
+Test với URL không tồn tại (404):
 
 ```bash
-sed 's|hiepau1231/Auggie-Promptenahncer|invalid-user/invalid-repo-404|' install.sh | bash
+sed 's|hiepau1231/Auggie-Promptenhancer|invalid-user/invalid-repo-404|' install.sh | bash
 echo "Exit code: $?"
 ```
 Expected:
@@ -227,7 +216,57 @@ Expected:
 Exit code: 1
 ```
 
-- [ ] **Step 4: Kiểm tra README chứa cả 2 install commands**
+Note: Script currently shows generic error message. Future improvement: distinguish HTTP errors (404, 403) from network errors.
+
+- [ ] **Step 4: Test actual install.sh workflow**
+
+Run the actual installer and verify destination:
+
+```bash
+./install.sh
+ls -la ~/.claude/commands/enhance.md
+head -5 ~/.claude/commands/enhance.md
+```
+Expected: File exists with correct content (starts with `---`)
+
+- [ ] **Step 5: Test update workflow (rerun)**
+
+Run installer again to verify update behavior:
+
+```bash
+./install.sh
+echo "Exit code: $?"
+```
+Expected: Exit code 0, file updated successfully
+
+- [ ] **Step 6: Test install.ps1 workflow (Windows)**
+
+First, ensure script execution is allowed (if not already configured):
+
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+```
+
+Then run the PowerShell installer:
+
+```powershell
+.\install.ps1
+Test-Path "$env:USERPROFILE\.claude\commands\enhance.md"
+Get-Content "$env:USERPROFILE\.claude\commands\enhance.md" | Select-Object -First 5
+```
+Expected: File exists with correct content (starts with `---`)
+
+- [ ] **Step 7: Test install.ps1 update workflow (rerun)**
+
+Run installer again to verify update behavior:
+
+```powershell
+.\install.ps1
+echo $LASTEXITCODE
+```
+Expected: Exit code 0, file updated successfully
+
+- [ ] **Step 8: Kiểm tra README chứa cả 2 install commands**
 
 ```bash
 grep "install.sh" README.md && echo "install.sh OK"
@@ -235,11 +274,19 @@ grep "install.ps1" README.md && echo "install.ps1 OK"
 ```
 Expected: cả 2 dòng đều in ra
 
-- [ ] **Step 5: Final commit**
+---
+
+## Commit Strategy
+
+**Single commit after all validation passes:**
 
 ```bash
 git add install.sh install.ps1 README.md
-git status
-# Chỉ commit nếu còn file chưa staged
-git diff --cached --quiet || git commit -m "chore: finalize install scripts"
+git commit -m "feat: add install scripts for /enhance command
+
+- Add install.sh for macOS/Linux with atomic temp-file download
+- Add install.ps1 for Windows with error handling
+- Update README with one-command install instructions"
 ```
+
+Note: Do NOT commit per chunk. All files are committed together after smoke tests pass.
