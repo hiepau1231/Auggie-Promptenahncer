@@ -52,6 +52,34 @@ Sau khi cài xong, dùng trong bất kỳ project nào:
 
 > Lệnh này hoạt động cho cả install lẫn update — chạy lại bất cứ lúc nào để lấy phiên bản mới nhất.
 
+### Enhanced Commands — Chain /enhance với skill khác
+
+Muốn gọi `/enhance` kết hợp với skill khác (như `/vibecode`, `/vibecheck`) trong 1 lệnh? Dùng enhanced commands:
+
+```
+/enhance-vibecode <prompt>    # Enhance → orchestrate subagents
+/enhance-vibecheck <prompt>   # Enhance → feature health check
+/enhance-vibefast <prompt>    # Enhance → fast implementation
+```
+
+**Thêm skill mới vào enhanced commands:**
+
+1. Tạo skill mới trong `~/.claude/commands/my-skill.md`
+2. Chạy generator:
+
+```powershell
+# Windows
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/scripts/generate-enhanced.ps1 -OutFile generate-enhanced.ps1
+.\generate-enhanced.ps1 my-skill
+```
+
+```bash
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/scripts/generate-enhanced.sh | bash -s my-skill
+```
+
+3. Dùng: `/enhance-my-skill <prompt>`
+
 ---
 
 ## Tính năng
