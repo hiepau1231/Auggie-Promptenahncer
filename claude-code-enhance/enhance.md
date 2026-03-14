@@ -23,6 +23,7 @@ Viết lại prompt để:
 - **Cụ thể hơn**: Thêm chi tiết cụ thể từ ngữ cảnh codebase (đường dẫn file, tên hàm, tech stack)
 - **Có thể thực thi**: Cấu trúc sao cho AI có thể thực hiện ngay lập tức mà không cần hỏi thêm
 - **Đầy đủ**: Bao gồm định dạng output mong đợi nếu liên quan
+- **QUAN TRỌNG - Giữ nguyên ngôn ngữ**: PHẢI viết prompt đã nâng cao bằng CHÍNH NGÔN NGỮ của prompt gốc. Nếu prompt gốc tiếng Việt → output tiếng Việt. Nếu tiếng Anh → tiếng Anh. KHÔNG được chuyển đổi ngôn ngữ.
 
 ## Định dạng Output
 
