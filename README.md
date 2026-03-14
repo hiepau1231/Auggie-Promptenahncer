@@ -64,8 +64,24 @@ Muốn gọi `/enhance` kết hợp với skill khác (như `/vibecode`, `/vibec
 
 **Thêm skill mới vào enhanced commands:**
 
-1. Tạo skill mới trong `~/.claude/commands/my-skill.md`
-2. Chạy generator:
+**Bước 1:** Tạo file skill mới trong `~/.claude/commands/my-skill.md`:
+
+```markdown
+---
+name: my-skill
+description: Mô tả ngắn về skill
+---
+
+Bạn là chuyên gia về X. Nhiệm vụ của bạn là:
+
+1. Đọc prompt: $ARGUMENTS
+2. Phân tích và đưa ra kết quả
+3. Output theo format Y
+```
+
+> **Lưu ý:** `$ARGUMENTS` là placeholder - sẽ được thay thế bằng prompt của user.
+
+**Bước 2:** Chạy generator:
 
 ```powershell
 # Windows
@@ -75,10 +91,12 @@ Invoke-WebRequest -Uri https://raw.githubusercontent.com/hiepau1231/Auggie-Promp
 
 ```bash
 # macOS/Linux
-curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/scripts/generate-enhanced.sh | bash -s my-skill
+curl -fsSL https://raw.githubusercontent.com/hiepau1231/Auggie-Promptenahncer/main/scripts/generate-enhanced.sh -o generate-enhanced.sh
+chmod +x generate-enhanced.sh
+./generate-enhanced.sh my-skill
 ```
 
-3. Dùng: `/enhance-my-skill <prompt>`
+**Bước 3:** Dùng: `/enhance-my-skill <prompt>`
 
 ---
 
