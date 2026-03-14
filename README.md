@@ -54,17 +54,31 @@ Sau khi cài xong, dùng trong bất kỳ project nào:
 
 ### Enhanced Commands — Chain /enhance với skill khác
 
-Muốn gọi `/enhance` kết hợp với skill khác (như `/vibecode`, `/vibecheck`) trong 1 lệnh? Dùng enhanced commands:
+Thông thường, bạn chạy `/enhance <prompt>` để nâng cao prompt, rồi copy kết quả sang skill khác. **Enhanced commands** gộp 2 bước này thành 1: nâng cao prompt trước, rồi tự động truyền vào skill — không cần copy-paste thủ công.
 
 ```
-/enhance-vibecode <prompt>    # Enhance → orchestrate subagents
-/enhance-vibecheck <prompt>   # Enhance → feature health check
-/enhance-vibefast <prompt>    # Enhance → fast implementation
+/enhance-vibecode <prompt>    # Enhance prompt → chạy vibecode workflow
+/enhance-vibecheck <prompt>   # Enhance prompt → kiểm tra sức khỏe tính năng
+/enhance-vibefast <prompt>    # Enhance prompt → triển khai nhanh
 ```
 
-**Thêm skill mới vào enhanced commands:**
+**Cách hoạt động bên trong:**
 
-**Bước 1:** Tạo file skill mới trong `~/.claude/commands/my-skill.md`:
+```
+Bạn gõ:  /enhance-vibecode thêm dark mode
+              ↓
+STEP 1: Claude đọc codebase → nâng cao prompt (giống /enhance)
+              ↓
+STEP 2: Prompt đã nâng cao được truyền vào /vibecode → thực thi
+```
+
+#### Tạo enhanced command cho skill của bạn
+
+> **Yêu cầu:** Cần có kết nối internet để tải generator script. Lệnh `/enhance` phải đã được cài đặt.
+
+**Bước 1:** Tạo file skill tại `~/.claude/commands/my-skill.md`
+
+File skill là một markdown file với 2 phần: **frontmatter** (metadata) và **body** (nội dung prompt).
 
 ```markdown
 ---
@@ -79,9 +93,15 @@ Bạn là chuyên gia về X. Nhiệm vụ của bạn là:
 3. Output theo format Y
 ```
 
-> **Lưu ý:** `$ARGUMENTS` là placeholder - sẽ được thay thế bằng prompt của user.
+| Trường | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `name` | Có | Tên skill, dùng làm tên lệnh (`/my-skill`) |
+| `description` | Có | Mô tả ngắn, hiển thị trong danh sách commands |
+| `$ARGUMENTS` | Có | Placeholder — Claude tự thay bằng prompt của user khi chạy |
 
-**Bước 2:** Chạy generator:
+**Bước 2:** Chạy generator script
+
+Generator sẽ đọc file `my-skill.md`, tạo file mới `enhance-my-skill.md` (chứa STEP 1: enhance + STEP 2: skill logic), và lưu vào `~/.claude/commands/`.
 
 ```powershell
 # Windows
@@ -96,7 +116,23 @@ chmod +x generate-enhanced.sh
 ./generate-enhanced.sh my-skill
 ```
 
-**Bước 3:** Dùng: `/enhance-my-skill <prompt>`
+**Bước 3:** Dùng lệnh mới: `/enhance-my-skill <prompt>`
+
+> **Quy ước đặt tên:** File output luôn là `enhance-<tên-skill>.md`, lệnh gọi luôn là `/enhance-<tên-skill>`. Ví dụ: skill `vibecode` → file `enhance-vibecode.md` → lệnh `/enhance-vibecode`.
+
+#### Ví dụ end-to-end
+
+```bash
+# 1. Bạn đã có skill /vibecode cài tại ~/.claude/commands/vibecode.md
+# 2. Chạy generator để tạo enhanced version:
+./generate-enhanced.sh vibecode
+# ✅ Generated: enhance-vibecode.md
+
+# 3. Giờ dùng trong bất kỳ project nào:
+#    /enhance-vibecode thêm tính năng dark mode
+#    → Claude enhance prompt với context codebase
+#    → Rồi tự động chạy vibecode workflow với prompt đã nâng cao
+```
 
 ---
 
